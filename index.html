@@ -1,153 +1,1940 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📊 PAINEL JVE.11</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-body{font-family:Arial;background:#0f172a;color:white;margin:0;padding:20px}
-h1{margin-bottom:10px}
-table{width:100%;border-collapse:collapse;background:white;color:black}
-th,td{padding:6px;text-align:center;border:1px solid #ddd;font-size:12px}
-th{background:#2563eb;color:white}
-.kpi{font-size:18px;margin:10px 0}
-.box{padding:10px;border-radius:6px;margin-bottom:10px}
-.ok{background:#10b981}
-.error{background:#ef4444}
-canvas{background:white;border-radius:6px}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Controle Logístico - Leitor de Código de Barras</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.31/dist/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <!-- Biblioteca para leitura de código de barras -->
+    <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header h1 i {
+            color: #2c5364;
+        }
+
+        .filters-section {
+            background: white;
+            padding: 20px 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #203a43;
+            font-size: 14px;
+        }
+
+        .filter-group select, .filter-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: #fafbfc;
+        }
+
+        .filter-group select:focus, .filter-group input:focus {
+            border-color: #2c5364;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(44,83,100,0.1);
+        }
+
+        .btn-reset {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-reset:hover {
+            background: #c0392b;
+        }
+
+        .tecnico-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            border-left: 5px solid #2c5364;
+        }
+
+        .tecnico-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .info-item .label {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 5px;
+        }
+
+        .info-item .value {
+            font-size: 15px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .conferente-header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            border: 2px solid #2c5364;
+        }
+
+        .conferente-header h3 {
+            color: #203a43;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .conferente-header h3 i {
+            color: #2c5364;
+        }
+
+        .conferente-field {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .conferente-field input {
+            flex: 2;
+            min-width: 250px;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        .conferente-field input:focus {
+            border-color: #2c5364;
+            outline: none;
+        }
+
+        .conferente-field input.filled {
+            border-color: #27ae60;
+            background: #f0fff4;
+        }
+
+        .conferente-field span {
+            font-size: 14px;
+            color: #718096;
+        }
+
+        .itens-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title h2 {
+            color: #203a43;
+            font-size: 20px;
+        }
+
+        .progress-bar {
+            width: 150px;
+            height: 8px;
+            background: #edf2f7;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            transition: width 0.3s;
+        }
+
+        .itens-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .item-card {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 15px;
+            transition: all 0.3s;
+        }
+
+        .item-card.verified {
+            border-color: #27ae60;
+            background: #f0fff4;
+            box-shadow: 0 0 0 2px #27ae60 inset;
+        }
+
+        .item-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .item-numero {
+            font-weight: 700;
+            color: #203a43;
+            background: #edf2f7;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .verified-badge {
+            background: #27ae60;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .pending-badge {
+            background: #e74c3c;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .serial-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .serial-group input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .serial-group input:focus {
+            border-color: #2c5364;
+            outline: none;
+        }
+
+        .serial-group input.completed {
+            border-color: #27ae60;
+            background: #f0fff4;
+        }
+
+        .btn-barcode {
+            background: #2c5364;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-barcode:hover {
+            background: #203a43;
+        }
+
+        .btn-verify {
+            width: 100%;
+            padding: 10px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-verify:hover {
+            background: #2980b9;
+        }
+
+        .btn-verify.verified {
+            background: #27ae60;
+        }
+
+        .btn-verify.verified:hover {
+            background: #2f855a;
+        }
+
+        .foto-preview {
+            width: 100%;
+            height: 100px;
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+            background: #edf2f7;
+            margin-bottom: 8px;
+        }
+
+        .foto-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .foto-preview .placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #a0aec0;
+            gap: 5px;
+        }
+
+        .foto-preview .placeholder i {
+            font-size: 24px;
+        }
+
+        .btn-photo {
+            width: 100%;
+            padding: 8px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-photo:hover {
+            background: #2980b9;
+        }
+
+        .btn-photo.has-photo {
+            background: #27ae60;
+        }
+
+        .signatures-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        .signatures-title {
+            color: #203a43;
+            font-size: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .signatures-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .signature-card {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .signature-card h3 {
+            color: #203a43;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .signature-card h3 i {
+            color: #2c5364;
+        }
+
+        .signature-area {
+            position: relative;
+            width: 100%;
+            height: 150px;
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            background: white;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .signature-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: crosshair;
+        }
+
+        .signature-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #a0aec0;
+            font-size: 14px;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .signature-placeholder i {
+            font-size: 30px;
+            margin-bottom: 5px;
+        }
+
+        .signature-info {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f0fff4;
+            border-radius: 8px;
+            border-left: 4px solid #27ae60;
+            display: none;
+        }
+
+        .signature-info.active {
+            display: block;
+        }
+
+        .signature-info p {
+            font-size: 13px;
+            color: #22543d;
+            margin-bottom: 3px;
+        }
+
+        .signature-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .signature-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-clear {
+            background: #edf2f7;
+            color: #4a5568;
+        }
+
+        .btn-clear:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-validate {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-validate:hover {
+            background: #2f855a;
+        }
+
+        .global-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .btn-export {
+            background: #203a43;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+        }
+
+        .btn-export:hover {
+            background: #2c5364;
+        }
+
+        .btn-reset-all {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+        }
+
+        .btn-reset-all:hover {
+            background: #c0392b;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #203a43;
+            font-size: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #a0aec0;
+        }
+
+        .barcode-reader {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        #barcodeVideo {
+            width: 100%;
+            border-radius: 12px;
+            background: #000;
+        }
+
+        .barcode-result {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f0fff4;
+            border-radius: 8px;
+            border-left: 4px solid #27ae60;
+            display: none;
+        }
+
+        .barcode-result.active {
+            display: block;
+        }
+
+        .barcode-result p {
+            font-size: 14px;
+            color: #22543d;
+            word-break: break-all;
+        }
+
+        .camera-container {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        #photoVideo {
+            width: 100%;
+            border-radius: 12px;
+            background: #000;
+        }
+
+        .photo-preview {
+            width: 100%;
+            min-height: 300px;
+            border: 2px dashed #cbd5e0;
+            border-radius: 12px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #f8fafc;
+        }
+
+        .photo-preview img {
+            max-width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+        }
+
+        .camera-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .cam-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2f855a;
+        }
+
+        .btn-secondary {
+            background: #a0aec0;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #718096;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        @media (max-width: 768px) {
+            .signatures-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .itens-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .global-actions {
+                flex-direction: column;
+            }
+            
+            .btn-export, .btn-reset-all {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <i class="fas fa-barcode"></i>
+                Sistema de Controle Logístico - Leitor de Código de Barras
+            </h1>
+        </div>
 
-<h1>📊 PAINEL DE PRODUTIVIDADE JVE.11</h1>
+        <div class="filters-section">
+            <div class="filter-group">
+                <label><i class="fas fa-user-tie"></i> Supervisor</label>
+                <select id="supervisorFilter">
+                    <option value="">Todos os Supervisores</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label><i class="fas fa-user-cog"></i> Técnico</label>
+                <select id="tecnicoFilter">
+                    <option value="">Selecione um técnico</option>
+                </select>
+            </div>
+            <button class="btn-reset" id="resetFilters">
+                <i class="fas fa-undo-alt"></i> Limpar
+            </button>
+        </div>
 
-<div id="status" class="box ok">Carregando...</div>
+        <div id="tecnicoContent" style="display: none;">
+            <div class="tecnico-card">
+                <h3 style="color: #203a43; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-user-circle" style="color: #2c5364;"></i>
+                    Dados do Técnico
+                </h3>
+                <div class="tecnico-grid" id="tecnicoInfo"></div>
+            </div>
 
-<div class="kpi">
-Total Geral: <span id="total-geral">-</span> |
-Sucesso: <span id="total-sucesso">-</span> |
-Sem Sucesso: <span id="total-sem-sucesso">-</span> |
-Eficácia: <span id="eficacia-media">-</span>
-</div>
+            <div class="conferente-header">
+                <h3><i class="fas fa-user-check"></i> Conferente Responsável</h3>
+                <div class="conferente-field">
+                    <input type="text" id="conferenteGlobal" placeholder="Nome do conferente (preenche todos os itens)">
+                    <span id="conferenteCount">0 itens</span>
+                </div>
+            </div>
 
-<canvas id="chart" height="100"></canvas>
+            <div class="itens-section">
+                <div class="section-title">
+                    <h2><i class="fas fa-boxes"></i> Itens (Máx. 10)</h2>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div class="itens-grid" id="itensGrid"></div>
+            </div>
 
-<br>
+            <div class="signatures-section">
+                <div class="signatures-title">
+                    <i class="fas fa-signature"></i>
+                    Assinaturas Finais
+                </div>
+                <div class="signatures-grid">
+                    <!-- Assinatura do Técnico -->
+                    <div class="signature-card">
+                        <h3><i class="fas fa-user"></i> Assinatura do Técnico</h3>
+                        <div class="signature-area">
+                            <canvas id="tecnicoSignature" class="signature-canvas"></canvas>
+                            <div class="signature-placeholder" id="tecnicoPlaceholder">
+                                <i class="fas fa-signature"></i><br>
+                                Assine aqui
+                            </div>
+                        </div>
+                        <div class="signature-info" id="tecnicoInfoSign">
+                            <p><i class="fas fa-check-circle" style="color: #27ae60;"></i> Assinatura validada</p>
+                            <p id="tecnicoData"></p>
+                        </div>
+                        <div class="signature-buttons">
+                            <button class="signature-btn btn-clear" id="clearTecnico">
+                                <i class="fas fa-eraser"></i> Limpar
+                            </button>
+                            <button class="signature-btn btn-validate" id="validateTecnico">
+                                <i class="fas fa-check-circle"></i> Validar
+                            </button>
+                        </div>
+                    </div>
 
-<table>
-<thead>
-<tr>
-<th>TÉCNICO</th>
-<th>TR</th>
-<th>01</th><th>02</th><th>03</th><th>04</th><th>05</th><th>06</th><th>07</th><th>08</th><th>09</th><th>10</th><th>11</th><th>12</th><th>13</th>
-<th>SUCESSO</th><th>SEM</th><th>TOTAL</th><th>EFIC.</th>
-</tr>
-</thead>
-<tbody id="body"></tbody>
-</table>
+                    <!-- Assinatura do Conferente -->
+                    <div class="signature-card">
+                        <h3><i class="fas fa-user-check"></i> Assinatura do Conferente</h3>
+                        <div class="signature-area">
+                            <canvas id="conferenteSignature" class="signature-canvas"></canvas>
+                            <div class="signature-placeholder" id="conferentePlaceholder">
+                                <i class="fas fa-signature"></i><br>
+                                Assine aqui
+                            </div>
+                        </div>
+                        <div class="signature-info" id="conferenteInfoSign">
+                            <p><i class="fas fa-check-circle" style="color: #27ae60;"></i> Assinatura validada</p>
+                            <p id="conferenteData"></p>
+                        </div>
+                        <div class="signature-buttons">
+                            <button class="signature-btn btn-clear" id="clearConferente">
+                                <i class="fas fa-eraser"></i> Limpar
+                            </button>
+                            <button class="signature-btn btn-validate" id="validateConferente">
+                                <i class="fas fa-check-circle"></i> Validar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-<script>
+            <div class="global-actions">
+                <button class="btn-reset-all" id="resetAll">
+                    <i class="fas fa-redo-alt"></i> Resetar Tudo
+                </button>
+                <button class="btn-export" id="exportPDF">
+                    <i class="fas fa-file-pdf"></i> Exportar PDF
+                </button>
+            </div>
+        </div>
+    </div>
 
-const SHEET_ID = "2PACX-1vSUVJXJOB7UA6HNo-fv4k0fMvDSlIsXXpBh47u2FGMjZWNKKkv0mHyBW8QeskoaGGknu_N8DxkVYONC";
-const URL = `https://docs.google.com/spreadsheets/d/e/${SHEET_ID}/gviz/tq?tqx=out:json`;
+    <!-- Modal para Código de Barras -->
+    <div class="modal" id="barcodeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-barcode"></i> Leitor de Código de Barras</h3>
+                <button class="close-btn" id="closeBarcodeModal">&times;</button>
+            </div>
+            <div class="barcode-reader">
+                <video id="barcodeVideo" autoplay playsinline></video>
+            </div>
+            <div class="barcode-result" id="barcodeResult">
+                <p><strong>Código lido:</strong> <span id="barcodeData"></span></p>
+                <p><strong>Tipo:</strong> <span id="barcodeType"></span></p>
+            </div>
+            <div class="camera-controls">
+                <button class="cam-btn btn-secondary" id="stopBarcode">
+                    <i class="fas fa-stop"></i> Parar Leitura
+                </button>
+            </div>
+        </div>
+    </div>
 
-async function load(){
+    <!-- Modal para Foto -->
+    <div class="modal" id="cameraModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-camera"></i> Foto do Equipamento</h3>
+                <button class="close-btn" id="closePhotoModal">&times;</button>
+            </div>
+            <div class="camera-container">
+                <video id="photoVideo" autoplay playsinline></video>
+            </div>
+            <div class="photo-preview" id="photoPreview">
+                <canvas id="canvas" style="display: none;"></canvas>
+                <img id="photo" src="" alt="Preview" style="display: none;">
+            </div>
+            <div class="camera-controls">
+                <button class="cam-btn btn-primary" id="capturePhoto">
+                    <i class="fas fa-camera"></i> Tirar Foto
+                </button>
+                <button class="cam-btn btn-secondary" id="retakePhoto" style="display: none;">
+                    <i class="fas fa-redo"></i> Repetir
+                </button>
+                <button class="cam-btn btn-danger" id="savePhoto">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
+            </div>
+        </div>
+    </div>
 
-try{
+    <script>
+        // Dados completos dos técnicos
+        const tecnicosData = [
+            { uf: "SC", tr: "TR738176", tt: "TT813390", funcionario: "RICARDO LUIZ JABLONSKI", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.FNS.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "TR454198", tt: "TT822909", funcionario: "FERNANDO GALLON", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.FNS.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "TR817750", tt: "TT817616", funcionario: "LEANDRO DE SOUZA ASSUNCAO", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.TRD.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "TT813649", tt: "TT813649", funcionario: "MARCOS DA SILVA CARRILHO", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.FNS.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "TR618415", tt: "TT618415", funcionario: "SILVIO GARCIA", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.FNS.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "TR791113", tt: "TT791113", funcionario: "ALLAN GILBERTO DOS SANTOS SOUZA", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.TRD.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "TR804222", tt: "TT804222", funcionario: "ELIELSON DA SILVA ALVES", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.FNS.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "TR533230", tt: "TT828851", funcionario: "LUIZ FILIPI FERREIRA DA SILVA", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.FNS.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "7", tt: "3", funcionario: "RAFAEL LOPES DOS SANTOS", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.FNS.11", coordenador: "", municipio: "" },
+            { uf: "SC", tr: "TR750220", tt: "TT750220", funcionario: "TUAN LOPES FAGUNDES PEREIRA", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.LESTE.PAC.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "TR810966", tt: "TT811185", funcionario: "CHRISTIAN NUNES MACHADO", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.LESTE.PAC.11", coordenador: "MAURI DUTRA", municipio: "PALHOCA" },
+            { uf: "SC", tr: "TR790154", tt: "TT790154", funcionario: "FABIO DE SOUZA BARBOSA", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.LESTE.PAC.11", coordenador: "MAURI DUTRA", municipio: "SAO JOSE" },
+            { uf: "SC", tr: "TR794904", tt: "TT794904", funcionario: "GIOVANI DA SILVA ANTUNES", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.LESTE.SOO.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "TR695590", tt: "TT695590", funcionario: "LEONARD DAUM CARRASCO", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.LESTE.PAC.11", coordenador: "", municipio: "" },
+            { uf: "SC", tr: "TT821513", tt: "TR818957", funcionario: "GABRIEL PEREIRA SALAZAR", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.LESTE.SOO.11", coordenador: "MAURI DUTRA", municipio: "SAO JOSE" },
+            { uf: "SC", tr: "TR819188", tt: "TT822112", funcionario: "GUSTAVO CLAUDIONOR SOARES", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.LESTE.SOO.11", coordenador: "MAURI DUTRA", municipio: "SAO JOSE" },
+            { uf: "SC", tr: "TR798959", tt: "TT798959", funcionario: "IGOR SANTOS DA SILVA", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.LESTE.SOO.11", coordenador: "MAURI DUTRA", municipio: "SAO JOSE" },
+            { uf: "SC", tr: "TT720812", tt: "TT720812", funcionario: "PABLO JAHN ALVES", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.LESTE.SOO.11", coordenador: "MAURI DUTRA", municipio: "SAO JOSE" },
+            { uf: "SC", tr: "TR812670", tt: "TT813648", funcionario: "JESSE MONTEIRO DE SOUZA JUNIOR", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.TRD.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "TR525780", tt: "TT828845", funcionario: "CARLOS RODRIGO DE SOUZA", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.LESTE.SOO.11", coordenador: "MAURI DUTRA", municipio: "SAO JOSE" },
+            { uf: "SC", tr: "TR628392", tt: "TT829089", funcionario: "MAIKON TEODORO", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.LESTE.SOO.11", coordenador: "MAURI DUTRA", municipio: "SAO JOSE" },
+            { uf: "SC", tr: "2", tt: "TT829508", funcionario: "ALESSANDRO AMARAL DA CONCEICAO", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.LESTE.SOO.11", coordenador: "", municipio: "" },
+            { uf: "SC", tr: "TR789652", tt: "TT789652", funcionario: "JOSE LUIZ NERE GOMES FILHO", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.LESTE.SOO.11", coordenador: "", municipio: "" },
+            { uf: "SC", tr: "TT695480", tt: "TT695480", funcionario: "EVANDRO SILVA JUSTO", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.TRD.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "TR577116", tt: "TT577116", funcionario: "RODRIGO MELLO DA SILVA", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.TRD.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "TR818961", tt: "TT821516", funcionario: "VAGNER DO NASCIMENTO GIVIGI", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.TRD.11", coordenador: "MAURI DUTRA", municipio: "PALHOCA" },
+            { uf: "SC", tr: "TR797822", tt: "TT797822", funcionario: "ANDERSON LUIS SCHNEIDERS BATISTA", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.TRD.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "TR614972", tt: "TT614972", funcionario: "EDUARDO DIAS FERNANDES", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.TRD.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "TR809136", tt: "TT809136", funcionario: "MAIKON GONCALVES MARTINS", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.TRD.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "TR791263", tt: "TT791263", funcionario: "PAOLO ARRUE DE MELO", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.TRD.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "TR821743", tt: "TT828853", funcionario: "RAFAEL LA BELLA PEDROSO", supervisor: "GREGORI SOUZA", setor: "SC.LESTE.TRD.11", coordenador: "MAURI DUTRA", municipio: "FLORIANOPOLIS" },
+            { uf: "SC", tr: "TR817970", tt: "TT818577", funcionario: "ALEXANDRE MENDES PEREIRA", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR687140", tt: "TT687140", funcionario: "ARLEN VALDIR ZUCHO", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR817132", tt: "TT821514", funcionario: "GUILHERME COSTA MOREIRA", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR819750", tt: "TT823284", funcionario: "IGOR ROBERTO SENA PAES", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR817749", tt: "TT817615", funcionario: "IVAN DE SOUSA OLIVEIRA", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR817971", tt: "TT818725", funcionario: "KELVER JONATHAN NASCIMENTO DINIZ", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR695690", tt: "TT695690", funcionario: "LEONARDO DUARTE GOMES", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR560731", tt: "TT560731", funcionario: "PASCOAL COAN", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR733308", tt: "TT733308", funcionario: "RICARDO BADIO", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TT156528", tt: "TT156528", funcionario: "ROBSON ROBERTO REIS", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR123986", tt: "TT123986", funcionario: "SIDNEI LACERDA DA ROSA", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR820187", tt: "TT824019", funcionario: "THIAGO ROCHA FERREIRA", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR780145", tt: "TT780145", funcionario: "VERISMAR ATNAN ALVES DOS SANTOS", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR790151", tt: "TT790151", funcionario: "EDINALDO RIBEIRO BENEDITO", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR535090", tt: "TT535090", funcionario: "EZIO SILVA CABRAL JUNIOR", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR751389", tt: "TT751389", funcionario: "VITOR AUGUSTO DIAS CAMARA", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TC004017", tt: "TT004017", funcionario: "ANDRE LUIZ LOPES DE SA", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR540153", tt: "TT540153", funcionario: "IGOR LUCAS RUCHINSKI", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "TR044101", tt: "TT827898", funcionario: "CLAUDINEI DA SILVA HERCULANO", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR612597", tt: "TT612597", funcionario: "FABIO VELOZO", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR790152", tt: "TT790152", funcionario: "FRANCISCO EDUARDO DA ROZA", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR393853", tt: "TT818693", funcionario: "JOCENIR DA COSTA CHAVES", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR610570", tt: "TT610570", funcionario: "LENOIR CEOLIN", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR695691", tt: "TT695691", funcionario: "MAICON JUNIOR DUARTE", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR687177", tt: "TT687177", funcionario: "MARCOS PAULO DE BORBA", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR819189", tt: "TT822113", funcionario: "RAFAEL RAUL DOS SANTOS", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR810589", tt: "TT822591", funcionario: "RONNIE JOSE GRANADO DELGADO", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR634889", tt: "TT634889", funcionario: "THAFNYS DOS SANTOS ORTEGA", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR798462", tt: "TT798462", funcionario: "THIAGO AZEVEDO MORENO", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR798463", tt: "TT798463", funcionario: "TIAGO TAVARES", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR819638", tt: "TT822852", funcionario: "WILDERLEI DOS SANTOS DE CARVALHO", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR821741", tt: "TT828849", funcionario: "LUCAS PADILHA DOS SANTOS", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR801349", tt: "TT801349", funcionario: "BRENO DA SILVA CRUZ", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR819825", tt: "TT823367", funcionario: "EDIELSON ROBERTO PARRONCHI", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR408223", tt: "TT829090", funcionario: "MARCOS TAVARES", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR383337", tt: "TT829510", funcionario: "RODRIGO ROSA DA CONCEICAO", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "", municipio: "" },
+            { uf: "SC", tr: "TR578678", tt: "TT810210", funcionario: "JULIANO NECKEL", supervisor: "FABIO ROBERTO VERONICA", setor: "SC.OESTE.CCO.11", coordenador: "MAURI DUTRA", municipio: "CHAPECO" },
+            { uf: "SC", tr: "TR536003", tt: "TT536003", funcionario: "NAILOR VAIME BELTRAME", supervisor: "FABIO ROBERTO VERONICA", setor: "SC.OESTE.CCO.11", coordenador: "MAURI DUTRA", municipio: "CHAPECO" },
+            { uf: "SC", tr: "TR011326", tt: "TT011326", funcionario: "RENI LUIS BALLEN", supervisor: "FABIO ROBERTO VERONICA", setor: "SC.OESTE.CCO.11", coordenador: "MAURI DUTRA", municipio: "CHAPECO" },
+            { uf: "SC", tr: "TC031504", tt: "TT822851", funcionario: "ROGERIO LOURENCO PEREIRA", supervisor: "FABIO ROBERTO VERONICA", setor: "SC.OESTE.CCO.11", coordenador: "MAURI DUTRA", municipio: "CHAPECO" },
+            { uf: "SC", tr: "TR011124", tt: "TT011124", funcionario: "CARLOS TADEU MOTA", supervisor: "FABIO ROBERTO VERONICA", setor: "SC.PLA.LGS.11", coordenador: "MAURI DUTRA", municipio: "PALHOCA" },
+            { uf: "SC", tr: "TR819630", tt: "TT822848", funcionario: "EWERTON AFONSO AMARAL OLIVEIRA", supervisor: "FABIO ROBERTO VERONICA", setor: "SC.PLA.LGS.11", coordenador: "MAURI DUTRA", municipio: "SAO JOSE" },
+            { uf: "SC", tr: "TR585339", tt: "TT818532", funcionario: "ALCIONE LOPES DE LIZ", supervisor: "FABIO ROBERTO VERONICA", setor: "SC.PLA.LGS.11", coordenador: "MAURI DUTRA", municipio: "CHAPECO" },
+            { uf: "SC", tr: "TR817746", tt: "TT817606", funcionario: "CHARLES DE LIMA", supervisor: "FABIO ROBERTO VERONICA", setor: "SC.PLA.LGS.11", coordenador: "MAURI DUTRA", municipio: "CHAPECO" },
+            { uf: "SC", tr: "TR741362", tt: "TT741362", funcionario: "DYEMES THEODORO PADILHA", supervisor: "FABIO ROBERTO VERONICA", setor: "SC.PLA.LGS.11", coordenador: "MAURI DUTRA", municipio: "CHAPECO" },
+            { uf: "SC", tr: "TR711475", tt: "TT711475", funcionario: "ROGER OLIVEIRA DE JESUS", supervisor: "FABIO ROBERTO VERONICA", setor: "SC.PLA.LGS.11", coordenador: "MAURI DUTRA", municipio: "LAGES" },
+            { uf: "SC", tr: "TR520967", tt: "TT827900", funcionario: "LEONARDO NUNES MELLEGARI", supervisor: "FABIO ROBERTO VERONICA", setor: "SC.PLA.LGS.11", coordenador: "MAURI DUTRA", municipio: "LAGES" },
+            { uf: "SC", tr: "TR729705", tt: "TT729705", funcionario: "PAULO SERGIO LIMA", supervisor: "FABIO ROBERTO VERONICA", setor: "SC.PLA.LGS.11", coordenador: "MAURI DUTRA", municipio: "LAGES" },
+            { uf: "SC", tr: "TR818779", tt: "TT821257", funcionario: "ISMEL ROSABALES CANIZARES", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.SUL.CUA.11", coordenador: "MAURI DUTRA", municipio: "CRICIUMA" },
+            { uf: "SC", tr: "TR500504", tt: "TT500504", funcionario: "JULIANO MACHADO MEDEIROS", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.SUL.CUA.11", coordenador: "MAURI DUTRA", municipio: "CRICIUMA" },
+            { uf: "SC", tr: "TR069663", tt: "TT069663", funcionario: "ALEXANDRE DE SOUZA JOVINO", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.SUL.TUB.11", coordenador: "MAURI DUTRA", municipio: "TUBARAO" },
+            { uf: "SC", tr: "TR819549", tt: "TT822649", funcionario: "JOSE ANTONIO MEDEIROS", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.SUL.TUB.11", coordenador: "MAURI DUTRA", municipio: "LAGES" },
+            { uf: "SC", tr: "TR818778", tt: "TT820850", funcionario: "ERIEL RODRIGUES GOMEZ", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.SUL.YCA.11", coordenador: "MAURI DUTRA", municipio: "CRICIUMA" },
+            { uf: "SC", tr: "TR069683", tt: "TT820849", funcionario: "MAICON COLOMBO ZEFERINO", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.SUL.CUA.11", coordenador: "MAURI DUTRA", municipio: "CRICIUMA" },
+            { uf: "SC", tr: "TR571422", tt: "TT823208", funcionario: "MARILDO ALEXSANDRO CRESTANI", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.11", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR741363", tt: "TT741363", funcionario: "ELESSANDRO DA SILVA", supervisor: "FABIO ROBERTO VERONICA", setor: "SC.PLA.LGS.11", coordenador: "MAURI DUTRA", municipio: "SAO JOSE" },
+            { uf: "SC", tr: "TR729702", tt: "TT729702", funcionario: "ERITON CORREA", supervisor: "FABIO ROBERTO VERONICA", setor: "SC.PLA.LGS.11", coordenador: "MAURI DUTRA", municipio: "LAGES" },
+            { uf: "SC", tr: "TR535900", tt: "TT535900", funcionario: "ANDRE LUIS ALVES RANGEL", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.11", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR747901", tt: "TT817563", funcionario: "CAIO BENJO REIS", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.11", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR817614", tt: "TT827899", funcionario: "HUGO ROBERTO SILVA DO NASCIMENTO", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.11", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR817748", tt: "TT817614", funcionario: "HUGO SANTOS DALTRO", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.11", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR709217", tt: "TT822850", funcionario: "MARCELO GOMES FREITAS", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.11", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR645842", tt: "TT645842", funcionario: "MATEUS FERNANDES DE SOUZA", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.11", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR738178", tt: "TT738178", funcionario: "THIAGO SCHUMANN BAMFI", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.11", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR821742", tt: "TT828852", funcionario: "MARCOS CORDEIRO DELGADO", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.11", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR821740", tt: "TT828848", funcionario: "LUCAS DE JESUS MARTINS", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.11", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR821745", tt: "TT829088", funcionario: "ADRIANO DOS SANTOS GONCALVES", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.11", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR498678", tt: "TT498678", funcionario: "GIAM PIHETRO JEFTE SOARES DA SILVA", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.11", coordenador: "", municipio: "" },
+            { uf: "SC", tr: "TR608428", tt: "TT608428", funcionario: "ANDRE DE PROENCA", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.11", coordenador: "", municipio: "" },
+            { uf: "SC", tr: "TR555862", tt: "TT555862", funcionario: "EDSON DE SOUSA FONTES", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.12", coordenador: "", municipio: "" },
+            { uf: "SC", tr: "TR785766", tt: "TT785766", funcionario: "THALLES ALVES DE OLIVEIRA", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.12", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR818956", tt: "TT821512", funcionario: "CARLOS DINIZ DA SILVA", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.12", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR789009", tt: "TT789009", funcionario: "JHON JARLEI OROBIO GAMBOA", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.12", coordenador: "MAURI DUTRA", municipio: "INDAIAL" },
+            { uf: "SC", tr: "TR709235", tt: "TT824641", funcionario: "ANDERSON RODRIGO DA COSTA", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.12", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR578775", tt: "TT578775", funcionario: "CLOVIS GOIS", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.12", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR699694", tt: "TT699694", funcionario: "DAVID FERNANDES DOS SANTOS", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.12", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR010661", tt: "TT010661", funcionario: "DOMENICO CISZ", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.12", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR625056", tt: "TT625056", funcionario: "EDERSON PAZ CARRION", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.11", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR819629", tt: "TT822847", funcionario: "EDUARDO DANIEL KUHNEN", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.12", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR647818", tt: "TT647818", funcionario: "FELIPE RIZZOTTO", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.12", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR736827", tt: "TT736827", funcionario: "JOAO PAULO MERETIKA", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.12", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR802948", tt: "TT802948", funcionario: "MARCOS ROBERTO CORREA DA SILVA", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.12", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR682777", tt: "TT682777", funcionario: "RONALD RIBAS DE RIBAS", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.12", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR800405", tt: "TT800405", funcionario: "THIAGO TONN", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.12", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TT119205", tt: "TT119205", funcionario: "VALDECIR MOTTA", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.12", coordenador: "MAURI DUTRA", municipio: "GUABIRUBA" },
+            { uf: "SC", tr: "TR819007", tt: "TT821636", funcionario: "ANDRE ROLDAO", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR615873", tt: "TT615873", funcionario: "CARLOS ERICO DOS SANTOS SILVA", supervisor: "ROBERTO DE SOUZA JUNIOR", setor: "SC.VL1.BQE.11", coordenador: "MAURI DUTRA", municipio: "BRUSQUE" },
+            { uf: "SC", tr: "TR514450", tt: "TT821607", funcionario: "FABIO GONCALVES DE ANDRADE", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR711572", tt: "TT711572", funcionario: "JEFFERSON LUIS RENGEL", supervisor: "ROBERTO DE SOUZA JUNIOR", setor: "SC.VL1.BQE.11", coordenador: "MAURI DUTRA", municipio: "BRUSQUE" },
+            { uf: "SC", tr: "TR699710", tt: "TT699710", funcionario: "LUANDERSON CAZUMBA BARBOSA", supervisor: "ROBERTO DE SOUZA JUNIOR", setor: "SC.VL1.BQE.11", coordenador: "MAURI DUTRA", municipio: "BRUSQUE" },
+            { uf: "SC", tr: "TR537408", tt: "TT537408", funcionario: "RAFAEL DE MENEZES PEREIRA", supervisor: "ROBERTO DE SOUZA JUNIOR", setor: "SC.VL1.BQE.11", coordenador: "MAURI DUTRA", municipio: "BRUSQUE" },
+            { uf: "SC", tr: "TR615592", tt: "TT615592", funcionario: "RODRIGO BUGILA", supervisor: "ROBERTO DE SOUZA JUNIOR", setor: "SC.VL1.BQE.11", coordenador: "MAURI DUTRA", municipio: "BRUSQUE" },
+            { uf: "SC", tr: "TR789238", tt: "TT789238", funcionario: "OTO RENATO DO PRADO", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "9", tt: "TT829511", funcionario: "WESLEY SOUZA DOS SANTOS", supervisor: "ROBERTO DE SOUZA JUNIOR", setor: "SC.VL1.BQE.11", coordenador: "", municipio: "" },
+            { uf: "SC", tr: "TR182495", tt: "TT182495", funcionario: "ANDERSON FELIPE CALEGARI", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.11", coordenador: "MAURI DUTRA", municipio: "CRICIUMA" },
+            { uf: "SC", tr: "TR619042", tt: "TT619042", funcionario: "CARLOS ANTONIO POSSAMAI", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.RSL.11", coordenador: "MAURI DUTRA", municipio: "BRUSQUE" },
+            { uf: "SC", tr: "TR821242", tt: "TT826816", funcionario: "EMERSON ACACIO NAZARIO", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.RSL.11", coordenador: "MAURI DUTRA", municipio: "BRUSQUE" },
+            { uf: "SC", tr: "TR537702", tt: "TT826817", funcionario: "EVELTON AMARAL DOS SANTOS", supervisor: "CARLOS ROGERIO DA SILVA", setor: "SC.VL2.BCU.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "RIO DO SUL" },
+            { uf: "SC", tr: "TR820009", tt: "TT823770", funcionario: "MATHEUS ABILIO DA COSTA BOGA", supervisor: "CARLOS ROGERIO DA SILVA", setor: "SC.VL2.IAI.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "TR818780", tt: "TT820852", funcionario: "WARLEY BARBOSA DOS SANTOS", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR018009", tt: "TT018009", funcionario: "JONAS SILVA NUNES", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.SUL.CUA.11", coordenador: "MAURI DUTRA", municipio: "CRICIUMA" },
+            { uf: "SC", tr: "TR134058", tt: "TT134058", funcionario: "VALDIRAN DA SILVA LEITE", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.SUL.CUA.11", coordenador: "MAURI DUTRA", municipio: "CRICIUMA" },
+            { uf: "SC", tr: "TR680326", tt: "TT680326", funcionario: "ADRIANO CARLOS DE OLIVEIRA BARBOSA", supervisor: "CARLOS ROGERIO DA SILVA", setor: "SC.VL2.IAI.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "RIO DO SUL" },
+            { uf: "SC", tr: "TR597558", tt: "TT597558", funcionario: "AMAURI FRANCISCO CARDOZO", supervisor: "CARLOS ROGERIO DA SILVA", setor: "SC.VL2.IAI.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "BALNEARIO CAMBORIU" },
+            { uf: "SC", tr: "TR003232", tt: "TT003232", funcionario: "DANIEL MARINHO BATISTA", supervisor: "CARLOS ROGERIO DA SILVA", setor: "SC.VL2.IAI.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR800397", tt: "TT800397", funcionario: "FELIPE DE SOUZA", supervisor: "CARLOS ROGERIO DA SILVA", setor: "SC.VL2.IAI.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "TR699705", tt: "TT699705", funcionario: "JEAN FRANCISCO FRANCO DE CAMARGO", supervisor: "CARLOS ROGERIO DA SILVA", setor: "SC.VL2.IAI.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "TR687181", tt: "TT687181", funcionario: "MAYCON PASSOS DA SILVA ROSA", supervisor: "CARLOS ROGERIO DA SILVA", setor: "SC.VL2.IAI.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "TR819746", tt: "TT823272", funcionario: "TIAGO FELIPE SOUZA SANTOS MAGNO", supervisor: "ROBERTO DE SOUZA JUNIOR", setor: "SC.VL2.IAI.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "TR818218", tt: "TT819046", funcionario: "VINICIUS DE SOUZA", supervisor: "CARLOS ROGERIO DA SILVA", setor: "SC.VL2.BCU.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "TR819751", tt: "TT823285", funcionario: "WELITON BATISTA MELO", supervisor: "CARLOS ROGERIO DA SILVA", setor: "SC.VL2.IAI.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "TR632093", tt: "TT632093", funcionario: "WILLIAMS JOSE SILVA DOS SANTOS", supervisor: "TIAGO PEREIRA FRANCA", setor: "SC.NORTE.JVE.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "TR314446", tt: "10", funcionario: "MAYCKON HENRIQUE CASAS CORDOVA", supervisor: "ROBERTO DE SOUZA JUNIOR", setor: "SC.VL2.IAI.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "TR804338", tt: "TT804338", funcionario: "ALEXANDRE WILLIAN DE SOUZA", supervisor: "CARLOS ROGERIO DA SILVA", setor: "SC.VL2.IAI.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "TR820150", tt: "TT823882", funcionario: "DANIEL FIGUEIREDO NEVES", supervisor: "CARLOS ROGERIO DA SILVA", setor: "SC.VL2.IAI.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "TR705853", tt: "TT705853", funcionario: "EDIVAN GUIMARAES DA SILVA NETO", supervisor: "CARLOS ROGERIO DA SILVA", setor: "SC.VL2.IAI.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "TR800399", tt: "TT800399", funcionario: "JEFRI AYRES DA CRUZ", supervisor: "CARLOS ROGERIO DA SILVA", setor: "SC.VL2.IAI.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "TR003453", tt: "TT003453", funcionario: "MARCOS VENICIO BERNARDES", supervisor: "CARLOS ROGERIO DA SILVA", setor: "SC.VL2.IAI.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "TR750221", tt: "TT750221", funcionario: "WANDERLEI FIGUEIREDO NEVES", supervisor: "CARLOS ROGERIO DA SILVA", setor: "SC.VL2.IAI.12", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "TR386095", tt: "TT386095", funcionario: "CRISTIANO GROSSKOPF", supervisor: "CARLOS ROGERIO DA SILVA", setor: "SC.VL2.IAI.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "ITAJAI" },
+            { uf: "SC", tr: "TR597559", tt: "TT597559", funcionario: "ANDERSON RODRIGUES CHAGAS", supervisor: "ROBERTO DE SOUZA JUNIOR", setor: "SC.VL2.NVG.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "NAVEGANTES" },
+            { uf: "SC", tr: "TR549443", tt: "TT549443", funcionario: "MARCELO ALVES CUSTODIO", supervisor: "ROBERTO DE SOUZA JUNIOR", setor: "SC.VL2.NVG.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "NAVEGANTES" },
+            { uf: "SC", tr: "TR775911", tt: "TT775911", funcionario: "PABLO RIBEIRO DA SILVA", supervisor: "ROBERTO DE SOUZA JUNIOR", setor: "SC.VL2.NVG.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "NAVEGANTES" },
+            { uf: "SC", tr: "TR679747", tt: "TT679747", funcionario: "FREDERICO STUMPF", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.11", coordenador: "MAURI DUTRA", municipio: "BLUMENAU" },
+            { uf: "SC", tr: "TR621718", tt: "TT817779", funcionario: "WELLERSON FRANKLIN DE ALMEIDA SILVA", supervisor: "DANIEL OLIVEIRA", setor: "SC.NORTE.JVE.11", coordenador: "JUNIOMAR MOCHNACZ", municipio: "JOINVILLE" },
+            { uf: "SC", tr: "TR134056", tt: "TT134056", funcionario: "RANGEL DA SILVA PATRICIO", supervisor: "CASSIO RICARDO FERNANDES AVILA", setor: "SC.SUL.TUB.11", coordenador: "MAURI DUTRA", municipio: "TUBARAO" },
+            { uf: "SC", tr: "20", tt: "16", funcionario: "FRANCINEUDO DA SILVA SOUSA", supervisor: "ROBERTO DE SOUZA JUNIOR", setor: "SC.VL2.IAI.11", coordenador: "", municipio: "" },
+            { uf: "SC", tr: "21", tt: "17", funcionario: "PAULO ROBERTO DOS SANTOS MORAES", supervisor: "WILLIAN DIAS VAZ", setor: "SC.VL1.BNU.11", coordenador: "", municipio: "" }
+        ];
 
-    const r = await fetch(URL);
-    const text = await r.text();
+        // Elementos
+        const supervisorFilter = document.getElementById('supervisorFilter');
+        const tecnicoFilter = document.getElementById('tecnicoFilter');
+        const resetFilters = document.getElementById('resetFilters');
+        const tecnicoContent = document.getElementById('tecnicoContent');
+        const tecnicoInfo = document.getElementById('tecnicoInfo');
+        const conferenteGlobal = document.getElementById('conferenteGlobal');
+        const conferenteCount = document.getElementById('conferenteCount');
+        const itensGrid = document.getElementById('itensGrid');
+        const progressFill = document.getElementById('progressFill');
+        const resetAll = document.getElementById('resetAll');
+        const exportPDF = document.getElementById('exportPDF');
+        
+        // Assinaturas
+        const tecnicoSignature = document.getElementById('tecnicoSignature');
+        const conferenteSignature = document.getElementById('conferenteSignature');
+        const tecnicoPlaceholder = document.getElementById('tecnicoPlaceholder');
+        const conferentePlaceholder = document.getElementById('conferentePlaceholder');
+        const clearTecnico = document.getElementById('clearTecnico');
+        const clearConferente = document.getElementById('clearConferente');
+        const validateTecnico = document.getElementById('validateTecnico');
+        const validateConferente = document.getElementById('validateConferente');
+        const tecnicoInfoSign = document.getElementById('tecnicoInfoSign');
+        const conferenteInfoSign = document.getElementById('conferenteInfoSign');
+        const tecnicoData = document.getElementById('tecnicoData');
+        const conferenteData = document.getElementById('conferenteData');
+        
+        // Barcode Modal
+        const barcodeModal = document.getElementById('barcodeModal');
+        const closeBarcodeModal = document.getElementById('closeBarcodeModal');
+        const barcodeVideo = document.getElementById('barcodeVideo');
+        const barcodeResult = document.getElementById('barcodeResult');
+        const barcodeData = document.getElementById('barcodeData');
+        const barcodeType = document.getElementById('barcodeType');
+        const stopBarcode = document.getElementById('stopBarcode');
+        
+        // Foto Modal
+        const cameraModal = document.getElementById('cameraModal');
+        const closePhotoModal = document.getElementById('closePhotoModal');
+        const photoVideo = document.getElementById('photoVideo');
+        const canvas = document.getElementById('canvas');
+        const photo = document.getElementById('photo');
+        const capturePhoto = document.getElementById('capturePhoto');
+        const retakePhoto = document.getElementById('retakePhoto');
+        const savePhoto = document.getElementById('savePhoto');
 
-    const json = JSON.parse(text.substr(47).slice(0,-2));
-    const rows = json.table.rows;
+        // Estado
+        let currentTecnico = null;
+        let currentItemIndex = null;
+        let currentPhotoData = null;
+        let mediaStream = null;
+        let barcodeStream = null;
+        let registros = {};
+        let tecnicoSignaturePad = null;
+        let conferenteSignaturePad = null;
+        let barcodeReader = null;
+        let barcodeScanning = false;
 
-    montar(rows);
+        // Função para extrair lista única de supervisores
+        function getSupervisores() {
+            const supervisores = [...new Set(tecnicosData.map(t => t.supervisor))].filter(s => s && s.trim() !== '');
+            return supervisores.sort((a, b) => a.localeCompare(b));
+        }
 
-    document.getElementById("status").innerHTML = "Dados atualizados automaticamente";
-    document.getElementById("status").className = "box ok";
+        // Inicializar supervisores
+        function inicializarSupervisores() {
+            const supervisores = getSupervisores();
+            supervisorFilter.innerHTML = '<option value="">Todos os Supervisores</option>';
+            supervisores.forEach(sup => {
+                const option = document.createElement('option');
+                option.value = sup;
+                option.textContent = sup;
+                supervisorFilter.appendChild(option);
+            });
+        }
 
-}catch(e){
-    document.getElementById("status").innerHTML = "Erro ao conectar com Google Sheets";
-    document.getElementById("status").className = "box error";
-    console.error(e);
-}
+        // Função para obter técnicos únicos por TR
+        function getTecnicosUnicos(array) {
+            const map = new Map();
+            array.forEach(item => {
+                if (item.tr && item.tr.trim() !== '') {
+                    map.set(item.tr, item);
+                }
+            });
+            return Array.from(map.values());
+        }
 
-}
+        // Atualizar técnicos baseado no supervisor selecionado
+        function atualizarTecnicos() {
+            const supervisor = supervisorFilter.value;
+            let tecnicosFiltrados = [];
+            
+            if (!supervisor) {
+                // Se "Todos os Supervisores", mostra todos os técnicos únicos
+                tecnicosFiltrados = getTecnicosUnicos(tecnicosData);
+            } else {
+                // Filtra pelo supervisor selecionado
+                tecnicosFiltrados = tecnicosData.filter(t => t.supervisor === supervisor);
+                tecnicosFiltrados = getTecnicosUnicos(tecnicosFiltrados);
+            }
+            
+            // Ordena por nome
+            tecnicosFiltrados.sort((a, b) => a.funcionario.localeCompare(b.funcionario));
+            
+            tecnicoFilter.innerHTML = '<option value="">Selecione um técnico</option>';
+            tecnicosFiltrados.forEach(tec => {
+                const option = document.createElement('option');
+                option.value = tec.tr;
+                option.textContent = `${tec.funcionario} (${tec.tr})`;
+                tecnicoFilter.appendChild(option);
+            });
+            
+            // Se não houver técnicos, desabilita o select
+            tecnicoFilter.disabled = tecnicosFiltrados.length === 0;
+        }
 
-function montar(rows){
+        // Selecionar técnico
+        function selecionarTecnico(tr) {
+            const tecnico = tecnicosData.find(t => t.tr === tr);
+            if (!tecnico) return;
+            
+            currentTecnico = tecnico;
+            
+            tecnicoInfo.innerHTML = `
+                <div class="info-item"><span class="label">UF</span><span class="value">${tecnico.uf}</span></div>
+                <div class="info-item"><span class="label">Funcionário</span><span class="value">${tecnico.funcionario}</span></div>
+                <div class="info-item"><span class="label">TR</span><span class="value">${tecnico.tr}</span></div>
+                <div class="info-item"><span class="label">TT</span><span class="value">${tecnico.tt}</span></div>
+                <div class="info-item"><span class="label">Supervisor</span><span class="value">${tecnico.supervisor}</span></div>
+                <div class="info-item"><span class="label">Setor</span><span class="value">${tecnico.setor}</span></div>
+                <div class="info-item"><span class="label">Coordenador</span><span class="value">${tecnico.coordenador || '-'}</span></div>
+                <div class="info-item"><span class="label">Município</span><span class="value">${tecnico.municipio || '-'}</span></div>
+            `;
+            
+            if (!registros[tecnico.tr]) {
+                registros[tecnico.tr] = {
+                    tecnico: tecnico,
+                    itens: Array(10).fill(null).map((_, index) => ({
+                        id: index + 1,
+                        serial: '',
+                        verificado: false,
+                        foto: null
+                    }))
+                };
+            }
+            
+            tecnicoContent.style.display = 'block';
+            renderizarItens();
+            inicializarAssinaturas();
+            
+            // Reset conferente global
+            conferenteGlobal.value = '';
+            conferenteGlobal.classList.remove('filled');
+            atualizarConferenteCount();
+        }
 
-const body = document.getElementById("body");
-body.innerHTML="";
+        // Atualizar contagem de itens
+        function atualizarConferenteCount() {
+            if (!currentTecnico) return;
+            
+            const nomeConferente = conferenteGlobal.value.trim();
+            conferenteCount.textContent = nomeConferente ? 'Nome preenchido' : 'Aguardando nome';
+            
+            if (nomeConferente) {
+                conferenteGlobal.classList.add('filled');
+            } else {
+                conferenteGlobal.classList.remove('filled');
+            }
+        }
 
-let total=0,sucesso=0,sem=0;
-let diasTotal=Array(13).fill(0);
+        // Renderizar itens
+        function renderizarItens() {
+            if (!currentTecnico) return;
+            
+            const registro = registros[currentTecnico.tr];
+            if (!registro) return;
+            
+            itensGrid.innerHTML = '';
+            
+            registro.itens.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = `item-card ${item.verificado ? 'verified' : ''}`;
+                
+                const fotoHtml = item.foto 
+                    ? `<img src="${item.foto}" alt="Foto" onclick="window.open('${item.foto}', '_blank')">`
+                    : `<div class="placeholder"><i class="fas fa-camera"></i><span>Sem foto</span></div>`;
+                
+                const badgeHtml = item.verificado 
+                    ? '<span class="verified-badge"><i class="fas fa-check-circle"></i> VERIFICADO</span>'
+                    : '<span class="pending-badge"><i class="fas fa-hourglass-half"></i> PENDENTE</span>';
+                
+                card.innerHTML = `
+                    <div class="item-header">
+                        <span class="item-numero">${index + 1}</span>
+                        ${badgeHtml}
+                    </div>
+                    
+                    <div class="serial-group">
+                        <input type="text" class="${item.serial ? 'completed' : ''}" 
+                               value="${item.serial || ''}" placeholder="Número serial" data-index="${index}">
+                        <button class="btn-barcode" data-index="${index}">
+                            <i class="fas fa-barcode"></i>
+                        </button>
+                    </div>
+                    
+                    <button class="btn-verify ${item.verificado ? 'verified' : ''}" data-index="${index}">
+                        <i class="fas ${item.verificado ? 'fa-check-circle' : 'fa-check'}"></i>
+                        ${item.verificado ? 'Verificado' : 'Verificar Item'}
+                    </button>
+                    
+                    <div class="foto-preview" onclick="${item.foto ? `window.open('${item.foto}', '_blank')` : ''}">
+                        ${fotoHtml}
+                    </div>
+                    
+                    <button class="btn-photo ${item.foto ? 'has-photo' : ''}" data-index="${index}">
+                        <i class="fas ${item.foto ? 'fa-camera-retro' : 'fa-camera'}"></i>
+                        ${item.foto ? 'Tirar Novamente' : 'Adicionar Foto'}
+                    </button>
+                `;
+                
+                itensGrid.appendChild(card);
+                
+                // Eventos
+                const serialInput = card.querySelector('.serial-group input');
+                const barcodeBtn = card.querySelector('.btn-barcode');
+                const verifyBtn = card.querySelector('.btn-verify');
+                const photoBtn = card.querySelector('.btn-photo');
+                
+                serialInput.addEventListener('input', (e) => {
+                    item.serial = e.target.value;
+                });
+                
+                barcodeBtn.addEventListener('click', () => abrirBarcode(index));
+                
+                verifyBtn.addEventListener('click', () => toggleVerificado(index));
+                
+                photoBtn.addEventListener('click', () => abrirCamera(index));
+            });
+            
+            atualizarProgresso();
+        }
 
-rows.forEach(r=>{
+        // Toggle verificado
+        function toggleVerificado(index) {
+            if (!currentTecnico) return;
+            
+            const item = registros[currentTecnico.tr].itens[index];
+            
+            if (!item.serial) {
+                alert('Preencha o número serial primeiro');
+                return;
+            }
+            
+            if (!conferenteGlobal.value.trim()) {
+                alert('Preencha o nome do conferente primeiro');
+                return;
+            }
+            
+            item.verificado = !item.verificado;
+            
+            const card = itensGrid.children[index];
+            if (item.verificado) {
+                card.classList.add('verified');
+                const badge = card.querySelector('.item-header span:last-child');
+                badge.outerHTML = '<span class="verified-badge"><i class="fas fa-check-circle"></i> VERIFICADO</span>';
+                
+                const btn = card.querySelector('.btn-verify');
+                btn.classList.add('verified');
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> Verificado';
+            } else {
+                card.classList.remove('verified');
+                const badge = card.querySelector('.item-header span:last-child');
+                badge.outerHTML = '<span class="pending-badge"><i class="fas fa-hourglass-half"></i> PENDENTE</span>';
+                
+                const btn = card.querySelector('.btn-verify');
+                btn.classList.remove('verified');
+                btn.innerHTML = '<i class="fas fa-check"></i> Verificar Item';
+            }
+            
+            atualizarProgresso();
+        }
 
-    if(!r.c || !r.c[0] || !r.c[0].v) return;
-    if(r.c[0].v.toString().toUpperCase().includes("TOTAL")) return;
+        // Atualizar progresso
+        function atualizarProgresso() {
+            if (!currentTecnico) return;
+            
+            const itens = registros[currentTecnico.tr].itens;
+            const verificados = itens.filter(i => i.verificado).length;
+            
+            const progresso = (verificados / 10) * 100;
+            progressFill.style.width = `${progresso}%`;
+        }
 
-    const nome = r.c[0]?.v || "";
-    const tr = r.c[1]?.v || "";
+        // Inicializar assinaturas
+        function inicializarAssinaturas() {
+            // Técnico
+            tecnicoSignature.width = tecnicoSignature.offsetWidth;
+            tecnicoSignature.height = tecnicoSignature.offsetHeight;
+            
+            tecnicoSignaturePad = new SignaturePad(tecnicoSignature, {
+                backgroundColor: 'rgb(255, 255, 255)',
+                penColor: '#000000',
+                minWidth: 1,
+                maxWidth: 2.5
+            });
+            
+            tecnicoSignaturePad.addEventListener('beginStroke', () => {
+                tecnicoPlaceholder.style.display = 'none';
+            });
+            
+            // Conferente
+            conferenteSignature.width = conferenteSignature.offsetWidth;
+            conferenteSignature.height = conferenteSignature.offsetHeight;
+            
+            conferenteSignaturePad = new SignaturePad(conferenteSignature, {
+                backgroundColor: 'rgb(255, 255, 255)',
+                penColor: '#000000',
+                minWidth: 1,
+                maxWidth: 2.5
+            });
+            
+            conferenteSignaturePad.addEventListener('beginStroke', () => {
+                conferentePlaceholder.style.display = 'none';
+            });
+            
+            // Eventos dos botões
+            clearTecnico.onclick = () => {
+                tecnicoSignaturePad.clear();
+                tecnicoPlaceholder.style.display = 'block';
+                tecnicoInfoSign.classList.remove('active');
+            };
+            
+            clearConferente.onclick = () => {
+                conferenteSignaturePad.clear();
+                conferentePlaceholder.style.display = 'block';
+                conferenteInfoSign.classList.remove('active');
+            };
+            
+            validateTecnico.onclick = () => {
+                if (tecnicoSignaturePad.isEmpty()) {
+                    alert('Faça a assinatura do técnico');
+                    return;
+                }
+                
+                const now = new Date();
+                tecnicoData.textContent = `Assinado em: ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR')}`;
+                tecnicoInfoSign.classList.add('active');
+            };
+            
+            validateConferente.onclick = () => {
+                if (conferenteSignaturePad.isEmpty()) {
+                    alert('Faça a assinatura do conferente');
+                    return;
+                }
+                
+                const now = new Date();
+                conferenteData.textContent = `Assinado em: ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR')}`;
+                conferenteInfoSign.classList.add('active');
+            };
+        }
 
-    const dias = [];
-    for(let i=2;i<=14;i++){
-        dias.push(parseInt(r.c[i]?.v)||0);
-    }
+        // Evento do conferente global
+        conferenteGlobal.addEventListener('input', atualizarConferenteCount);
 
-    const s = parseInt(r.c[15]?.v)||0;
-    const sm = parseInt(r.c[16]?.v)||0;
-    const t = parseInt(r.c[17]?.v)||0;
-    const ef = parseFloat(r.c[18]?.v)||0;
+        // Abrir leitor de código de barras
+        async function abrirBarcode(index) {
+            currentItemIndex = index;
+            
+            try {
+                if (barcodeStream) {
+                    barcodeStream.getTracks().forEach(track => track.stop());
+                }
+                
+                barcodeStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' }, 
+                    audio: false 
+                });
+                
+                barcodeVideo.srcObject = barcodeStream;
+                await barcodeVideo.play();
+                
+                barcodeResult.classList.remove('active');
+                barcodeModal.classList.add('active');
+                
+                // Inicializar o leitor de código de barras
+                const codeReader = new ZXing.BrowserMultiFormatReader();
+                barcodeScanning = true;
+                
+                codeReader.decodeFromVideoDevice(null, barcodeVideo, (result, error) => {
+                    if (result && barcodeScanning) {
+                        // Código de barras encontrado
+                        barcodeData.textContent = result.text;
+                        barcodeType.textContent = result.format;
+                        barcodeResult.classList.add('active');
+                        
+                        // Preencher o serial do item atual
+                        if (currentItemIndex !== null && currentTecnico) {
+                            registros[currentTecnico.tr].itens[currentItemIndex].serial = result.text;
+                            renderizarItens();
+                        }
+                        
+                        // Vibrar se disponível
+                        if (navigator.vibrate) {
+                            navigator.vibrate(200);
+                        }
+                        
+                        // Parar a leitura após encontrar
+                        setTimeout(() => {
+                            fecharBarcodeModal();
+                        }, 1500);
+                    }
+                });
+                
+                // Guardar referência para poder parar depois
+                window.currentCodeReader = codeReader;
+                
+            } catch (error) {
+                alert('Erro ao acessar câmera: ' + error.message);
+            }
+        }
 
-    total+=t;
-    sucesso+=s;
-    sem+=sm;
+        // Fechar modal de código de barras
+        function fecharBarcodeModal() {
+            barcodeScanning = false;
+            if (window.currentCodeReader) {
+                window.currentCodeReader.reset();
+                window.currentCodeReader = null;
+            }
+            if (barcodeStream) {
+                barcodeStream.getTracks().forEach(track => track.stop());
+                barcodeStream = null;
+            }
+            barcodeModal.classList.remove('active');
+        }
 
-    dias.forEach((v,i)=>diasTotal[i]+=v);
+        closeBarcodeModal.addEventListener('click', fecharBarcodeModal);
+        stopBarcode.addEventListener('click', fecharBarcodeModal);
 
-    const row=document.createElement("tr");
-    row.innerHTML=`
-    <td>${nome}</td>
-    <td>${tr}</td>
-    ${dias.map(d=>`<td>${d}</td>`).join("")}
-    <td>${s}</td>
-    <td>${sm}</td>
-    <td>${t}</td>
-    <td>${ef.toFixed(1)}%</td>
-    `;
-    body.appendChild(row);
+        // Abrir câmera para foto
+        async function abrirCamera(index) {
+            currentItemIndex = index;
+            currentPhotoData = null;
+            
+            try {
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                }
+                
+                mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 2560 },
+                        height: { ideal: 1440 }
+                    }, 
+                    audio: false 
+                });
+                
+                photoVideo.srcObject = mediaStream;
+                await photoVideo.play();
+                
+                photo.style.display = 'none';
+                photoVideo.style.display = 'block';
+                capturePhoto.style.display = 'inline-block';
+                retakePhoto.style.display = 'none';
+                
+                cameraModal.classList.add('active');
+            } catch (error) {
+                alert('Erro ao acessar câmera: ' + error.message);
+            }
+        }
 
-});
+        capturePhoto.addEventListener('click', () => {
+            canvas.width = photoVideo.videoWidth;
+            canvas.height = photoVideo.videoHeight;
+            
+            const context = canvas.getContext('2d');
+            context.drawImage(photoVideo, 0, 0, canvas.width, canvas.height);
+            
+            currentPhotoData = canvas.toDataURL('image/jpeg', 0.98);
+            photo.src = currentPhotoData;
+            
+            photoVideo.style.display = 'none';
+            photo.style.display = 'block';
+            capturePhoto.style.display = 'none';
+            retakePhoto.style.display = 'inline-block';
+        });
 
-const eficacia = total>0 ? (sucesso/total*100) : 0;
+        retakePhoto.addEventListener('click', () => {
+            currentPhotoData = null;
+            photo.src = '';
+            photoVideo.style.display = 'block';
+            photo.style.display = 'none';
+            capturePhoto.style.display = 'inline-block';
+            retakePhoto.style.display = 'none';
+        });
 
-document.getElementById("total-geral").innerText=total;
-document.getElementById("total-sucesso").innerText=sucesso;
-document.getElementById("total-sem-sucesso").innerText=sem;
-document.getElementById("eficacia-media").innerText=eficacia.toFixed(1)+"%";
+        savePhoto.addEventListener('click', () => {
+            if (!currentPhotoData || !currentTecnico || currentItemIndex === null) {
+                alert('Tire uma foto primeiro');
+                return;
+            }
+            
+            registros[currentTecnico.tr].itens[currentItemIndex].foto = currentPhotoData;
+            
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            
+            cameraModal.classList.remove('active');
+            renderizarItens();
+        });
 
-if(window.chart) window.chart.destroy();
+        closePhotoModal.addEventListener('click', () => {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            cameraModal.classList.remove('active');
+        });
 
-const ctx=document.getElementById("chart").getContext("2d");
-window.chart=new Chart(ctx,{
-type:"line",
-data:{
-labels:["01","02","03","04","05","06","07","08","09","10","11","12","13"],
-datasets:[{
-data:diasTotal,
-borderColor:"#2563eb",
-backgroundColor:"rgba(37,99,235,0.2)",
-fill:true
-}]
-}
-});
+        // Reset
+        resetAll.addEventListener('click', () => {
+            if (!currentTecnico) return;
+            if (confirm('Resetar todos os dados?')) {
+                registros[currentTecnico.tr].itens = Array(10).fill(null).map((_, index) => ({
+                    id: index + 1,
+                    serial: '',
+                    verificado: false,
+                    foto: null
+                }));
+                
+                conferenteGlobal.value = '';
+                conferenteGlobal.classList.remove('filled');
+                
+                tecnicoSignaturePad.clear();
+                conferenteSignaturePad.clear();
+                tecnicoPlaceholder.style.display = 'block';
+                conferentePlaceholder.style.display = 'block';
+                tecnicoInfoSign.classList.remove('active');
+                conferenteInfoSign.classList.remove('active');
+                
+                renderizarItens();
+                atualizarConferenteCount();
+            }
+        });
 
-}
+        // Export PDF
+        exportPDF.addEventListener('click', async () => {
+            if (!currentTecnico) return;
+            
+            const registro = registros[currentTecnico.tr];
+            const nomeConferente = conferenteGlobal.value.trim() || 'Não informado';
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            
+            // TÍTULO PRINCIPAL
+            doc.setFillColor(32, 58, 67);
+            doc.rect(0, 0, 210, 35, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(22);
+            doc.setFont('helvetica', 'bold');
+            doc.text('RELATÓRIO DE CONTROLE LOGÍSTICO', 105, 15, { align: 'center' });
+            
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Documento de verificação de equipamentos', 105, 25, { align: 'center' });
+            
+            // LINHA DIVISÓRIA
+            doc.setDrawColor(255, 255, 255);
+            doc.setLineWidth(0.5);
+            doc.line(15, 30, 195, 30);
+            
+            // DADOS DO TÉCNICO - Título
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('DADOS DO TÉCNICO', 15, 45);
+            
+            // Grid de informações do técnico em duas colunas
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            
+            // Coluna 1
+            doc.text('UF:', 15, 55);
+            doc.text('Funcionário:', 15, 63);
+            doc.text('TR:', 15, 71);
+            doc.text('Supervisor:', 15, 79);
+            
+            // Coluna 2
+            doc.text('TT:', 120, 55);
+            doc.text('Setor:', 120, 63);
+            doc.text('Coordenador:', 120, 71);
+            doc.text('Município:', 120, 79);
+            
+            // Valores
+            doc.setFont('helvetica', 'normal');
+            doc.text(currentTecnico.uf, 30, 55);
+            doc.text(currentTecnico.funcionario, 50, 63);
+            doc.text(currentTecnico.tr, 30, 71);
+            doc.text(currentTecnico.supervisor, 50, 79);
+            
+            doc.text(currentTecnico.tt, 135, 55);
+            doc.text(currentTecnico.setor, 145, 63);
+            doc.text(currentTecnico.coordenador || '-', 160, 71);
+            doc.text(currentTecnico.municipio || '-', 150, 79);
+            
+            // CONFERENTE RESPONSÁVEL
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.text('CONFERENTE RESPONSÁVEL', 15, 100);
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(12);
+            doc.text(`Nome: ${nomeConferente}`, 15, 110);
+            
+            // TABELA DE ITENS
+            const tableData = registro.itens.map((item, index) => [
+                (index + 1).toString(),
+                item.serial || '---',
+                item.verificado ? 'SIM' : 'NÃO',
+                item.foto ? 'SIM' : 'NÃO'
+            ]);
+            
+            doc.autoTable({
+                startY: 125,
+                head: [['Item', 'Número Serial', 'Verificado', 'Foto']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { 
+                    fillColor: [32, 58, 67], 
+                    textColor: 255,
+                    fontSize: 11,
+                    halign: 'center',
+                    fontStyle: 'bold'
+                },
+                styles: { 
+                    fontSize: 10,
+                    cellPadding: 5,
+                    halign: 'center',
+                    valign: 'middle',
+                    textColor: [0, 0, 0]
+                },
+                columnStyles: {
+                    0: { cellWidth: 20 },
+                    1: { cellWidth: 90 },
+                    2: { cellWidth: 30 },
+                    3: { cellWidth: 30 }
+                },
+                margin: { left: 15, right: 15 }
+            });
+            
+            let finalY = doc.lastAutoTable.finalY + 15;
+            
+            // FOTOS DOS EQUIPAMENTOS - DUAS FOTOS POR PÁGINA
+            const itensComFoto = registro.itens.filter(i => i.foto);
+            
+            if (itensComFoto.length > 0) {
+                doc.addPage();
+                
+                doc.setFillColor(32, 58, 67);
+                doc.rect(0, 0, 210, 25, 'F');
+                
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(18);
+                doc.setFont('helvetica', 'bold');
+                doc.text('FOTOS DOS EQUIPAMENTOS', 105, 15, { align: 'center' });
+                
+                let fotoY = 35;
+                let fotoCount = 0;
+                
+                registro.itens.forEach((item, index) => {
+                    if (item.foto) {
+                        if (fotoCount === 2) {
+                            doc.addPage();
+                            
+                            doc.setFillColor(32, 58, 67);
+                            doc.rect(0, 0, 210, 25, 'F');
+                            
+                            doc.setTextColor(255, 255, 255);
+                            doc.setFontSize(18);
+                            doc.setFont('helvetica', 'bold');
+                            doc.text('FOTOS DOS EQUIPAMENTOS (continuação)', 105, 15, { align: 'center' });
+                            
+                            fotoY = 35;
+                            fotoCount = 0;
+                        }
+                        
+                        const fotoX = fotoCount === 0 ? 15 : 110;
+                        
+                        doc.setDrawColor(100, 100, 100);
+                        doc.setFillColor(245, 245, 245);
+                        doc.roundedRect(fotoX, fotoY, 85, 100, 5, 5, 'FD');
+                        
+                        doc.setTextColor(0, 0, 0);
+                        doc.setFontSize(12);
+                        doc.setFont('helvetica', 'bold');
+                        doc.text(`ITEM ${index + 1}`, fotoX + 30, fotoY - 3);
+                        
+                        doc.setFontSize(9);
+                        doc.setFont('helvetica', 'normal');
+                        doc.text(`Serial: ${item.serial || '---'}`, fotoX + 5, fotoY + 105);
+                        doc.text(`Verif: ${item.verificado ? 'SIM' : 'NÃO'}`, fotoX + 5, fotoY + 112);
+                        
+                        try {
+                            doc.addImage(item.foto, 'JPEG', fotoX + 3, fotoY + 3, 79, 94);
+                        } catch (e) {
+                            doc.setFont('helvetica', 'normal');
+                            doc.setFontSize(10);
+                            doc.setTextColor(150, 150, 150);
+                            doc.text('Erro na imagem', fotoX + 20, fotoY + 50);
+                        }
+                        
+                        fotoCount++;
+                        if (fotoCount === 2) {
+                            fotoY += 120;
+                        }
+                    }
+                });
+                
+                finalY = 250;
+            }
+            
+            // ASSINATURAS
+            doc.addPage();
+            
+            doc.setFillColor(32, 58, 67);
+            doc.rect(0, 0, 210, 25, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('ASSINATURAS', 105, 15, { align: 'center' });
+            
+            const assinaturaY = 45;
+            
+            doc.setFillColor(245, 245, 245);
+            doc.roundedRect(15, assinaturaY, 180, 90, 5, 5, 'F');
+            doc.setDrawColor(32, 58, 67);
+            doc.setLineWidth(1);
+            doc.roundedRect(15, assinaturaY, 180, 90, 5, 5, 'S');
+            
+            doc.setDrawColor(32, 58, 67);
+            doc.setLineWidth(0.5);
+            doc.line(105, assinaturaY + 5, 105, assinaturaY + 85);
+            
+            // ASSINATURA DO TÉCNICO
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.text('TÉCNICO', 60, assinaturaY + 15, { align: 'center' });
+            
+            const tecX = 60;
+            if (tecnicoSignaturePad && !tecnicoSignaturePad.isEmpty()) {
+                try {
+                    const tecSig = tecnicoSignaturePad.toDataURL();
+                    doc.addImage(tecSig, 'PNG', tecX - 35, assinaturaY + 20, 70, 25);
+                } catch (e) {}
+            } else {
+                doc.setFont('helvetica', 'italic');
+                doc.setFontSize(11);
+                doc.text('(assinatura pendente)', tecX, assinaturaY + 35, { align: 'center' });
+            }
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(11);
+            if (tecnicoInfoSign.classList.contains('active')) {
+                doc.setTextColor(0, 0, 0);
+                doc.text('Assinatura validada', tecX, assinaturaY + 65, { align: 'center' });
+            } else {
+                doc.setTextColor(150, 150, 150);
+                doc.text('(assinatura pendente)', tecX, assinaturaY + 65, { align: 'center' });
+            }
+            
+            // ASSINATURA DO CONFERENTE
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.text('CONFERENTE', 150, assinaturaY + 15, { align: 'center' });
+            
+            const confX = 150;
+            if (conferenteSignaturePad && !conferenteSignaturePad.isEmpty()) {
+                try {
+                    const confSig = conferenteSignaturePad.toDataURL();
+                    doc.addImage(confSig, 'PNG', confX - 35, assinaturaY + 20, 70, 25);
+                } catch (e) {}
+            } else {
+                doc.setFont('helvetica', 'italic');
+                doc.setFontSize(11);
+                doc.text('(assinatura pendente)', confX, assinaturaY + 35, { align: 'center' });
+            }
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(11);
+            if (conferenteInfoSign.classList.contains('active')) {
+                doc.setTextColor(0, 0, 0);
+                doc.text('Assinatura validada', confX, assinaturaY + 65, { align: 'center' });
+            } else {
+                doc.setTextColor(150, 150, 150);
+                doc.text('(assinatura pendente)', confX, assinaturaY + 65, { align: 'center' });
+            }
+            
+            // Rodapé
+            doc.setTextColor(150, 150, 150);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Documento gerado em: ${new Date().toLocaleString('pt-BR')}`, 105, 285, { align: 'center' });
+            
+            doc.save(`controle_${currentTecnico.tr}_${new Date().toISOString().slice(0,10)}.pdf`);
+        });
 
-window.onload=load;
+        // Eventos
+        supervisorFilter.addEventListener('change', atualizarTecnicos);
+        
+        tecnicoFilter.addEventListener('change', function() {
+            if (this.value) {
+                selecionarTecnico(this.value);
+            } else {
+                tecnicoContent.style.display = 'none';
+            }
+        });
+        
+        resetFilters.addEventListener('click', () => {
+            supervisorFilter.value = '';
+            tecnicoFilter.innerHTML = '<option value="">Selecione um técnico</option>';
+            tecnicoFilter.disabled = false;
+            tecnicoContent.style.display = 'none';
+            currentTecnico = null;
+            atualizarTecnicos();
+        });
 
-</script>
+        // Iniciar
+        inicializarSupervisores();
+    </script>
 </body>
 </html>
